@@ -80,6 +80,36 @@
     function setWalkableAt(x, y, walkable) {
         this.nodes[y][x].walkable = walkable;
     }
+    function getClosestNodes(node) {
+        var x = node.x,
+            y = node.y,
+            neighbors = [],
+            n0 = false, n1 = false, n2 = false, n3 = false,
+            nodes = this.nodes;
+        
+        // cima
+        if (this.isWalkableAt(x, y - 1)) {
+            neighbors.push(nodes[y - 1][x]);
+            n0 = true;
+        }
+        // direita
+        if (this.isWalkableAt(x + 1, y)) {
+            neighbors.push(nodes[y][x + 1]);
+            n1 = true;
+        }
+        // baixo
+        if (this.isWalkableAt(x, y + 1)) {
+            neighbors.push(nodes[y + 1][x]);
+            n2 = true;
+        }
+        // esquerda
+        if (this.isWalkableAt(x - 1, y)) {
+            neighbors.push(nodes[y][x - 1]);
+            n3 = true;
+        }
+        
+        return neighbors;
+    }
 </script>
     
 </body>
