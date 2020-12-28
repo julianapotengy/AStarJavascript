@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>A* - Juliana Potengy</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+    
+<canvas id="myCanvas" width="600" height="600"></canvas>
+
+<script>
+	var canvas = document.getElementById("myCanvas");
+    var ctx = canvas.getContext("2d");
+    var maxNodes = 10;
+    var nodeSize = canvas.width / maxNodes;
+        
+    function Node(x, y, walkable) {
+        this.x = x;
+        this.y = y;
+        this.walkable = walkable;
+        
+        ctx.beginPath();
+        ctx.rect(x, y, nodeSize, nodeSize);
+        ctx.strokeStyle = "rgba(0, 0, 255, 0.5)";
+        ctx.stroke();
+        ctx.closePath();
+    }
+    //Node(0, 0, true);
+    var grid = new Grid(10, 10, 1);
+    
+    function Grid(width, height) {
+        this.width = width;
+        this.height = height;
+        this.nodes = BuildNodes(width, height);
+    }
+    
+    function BuildNodes(width, height, matrix) {
+        var i, j, 
+            nodes = new Array(height);
+        
+        for (i = 0; i < maxNodes; i++) {
+            nodes[i] = new Array(width);
+            for (j = 0; j < maxNodes; j++) {
+                nodes[i][j] = new Node(i * nodeSize, j * nodeSize);
+            }
+        }
+        
+        if(matrix === undefined) {
+            return nodes;
+        }
+        
+        if(matrix.length !== height || matrix[0].length !== width) {
+            throw new Error('Matrix size does not fit');
+        }
+        
+        for(i = 0; i < height; ++i) {
+            for(j = 0; j < width; ++j) {
+                if(matrix[i][j]) {
+                    nodes[i][j].walkable = false;
+                }
+            }
+        }
+        
+        return nodes;
+    }
+    
+    function getNodeAt(x, y) {
+        return this.nodes[y][x];
+    }
+    function isWalkableAt(x, y) {
+        return this.isInside(x, y) && this.nodes[y][x].walkable;
+    }
+    function isInside(x, y) {
+        return (x >= 0 && x < this.width) && (y >= 0 && y < this.height);
+    }
+    function setWalkableAt(x, y, walkable) {
+        this.nodes[y][x].walkable = walkable;
+    }
+</script>
+    
+</body>
+</html>
