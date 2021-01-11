@@ -1,118 +1,162 @@
 var canvas = document.getElementById("myCanvas");
 var ctx = canvas.getContext("2d");
-var maxNodes = 10;
-var nodeSize = canvas.width / maxNodes;
+var maxRows = 9;
+var maxCols = maxRows;
+var nodeSize = canvas.width / maxRows;
+var grid;
+var openList, closedList = [];
+var start, end;
+var path = [];
 var normalWeight = 10;
-var manhattan, nodeA, nodeB;
-var grid = new Grid(10, 10, 0);
-var nodes;
 
-function Node(x, y, weight, i, j) {
-    this.x = x;
-    this.y = y;
-    this.weight = weight;
+function node(i, j) {
     this.i = i;
     this.j = j;
+    this.g = 0;
+    this.h = 0;
+    this.f = this.g + this.h;
+    this.neighbors = [];
+    this.cameFrom = undefined;
+    this.isWall = false;
     
-    ctx.beginPath();
-    ctx.rect(x, y, nodeSize, nodeSize);
-    ctx.strokeStyle = "#0000FF";
-    ctx.stroke();
-    ctx.closePath();
-}
-
-function isWall(node) {
-    node.weight = 0;
-    ctx.beginPath();
-    ctx.rect(node.x, node.y, nodeSize, nodeSize);
-    ctx.fillStyle = "#000000";
-    ctx.fill();
-    ctx.closePath();
-}
-
-function isNodeA(node) {
-    node.weight = 0;
-    ctx.beginPath();
-    ctx.rect(node.x, node.y, nodeSize, nodeSize);
-    ctx.fillStyle = "#00FF00";
-    ctx.fill();
-    ctx.closePath();
-}
-
-function isNodeB(node) {
-    node.weight = 0;
-    ctx.beginPath();
-    ctx.rect(node.x, node.y, nodeSize, nodeSize);
-    ctx.fillStyle = "#FF0000";
-    ctx.fill();
-    ctx.closePath();
-}
-
-function canWalkIn(i, j) {
-    if(this.nodes[i][j].weight > 0) {
-        return true;
+    for(var a = 3; a <= 5; a++) {
+        if(this.i == a && this.j == 4) {
+            this.isWall = true;
+        }
     }
-    else return false;
-}
-
-function Grid(width, height) {
-    this.width = width;
-    this.height = height;
-    this.nodes = buildNodes(width, height);
-}
-
-function buildNodes(width, height) {
-    var i, j;
-    nodes = new Array(height);
     
-    for (i = 0; i < maxNodes; i++) {
-        nodes[i] = new Array(width);
-        for (j = 0; j < maxNodes; j++) {
-            nodes[i][j] = new Node(i * nodeSize, j * nodeSize, normalWeight, i, j);
-            if(i == maxNodes / 2 && j == maxNodes / 2) {
-                isWall(nodes[i][j]);
+    this.draw = function(color) {
+        ctx.beginPath();
+        ctx.rect(this.i * nodeSize, this.j * nodeSize, nodeSize, nodeSize);
+        ctx.strokeStyle = "#0000FF";
+        ctx.stroke();
+        if(this.isWall) {
+            ctx.fillStyle = "#000000";
+        } else {
+            ctx.fillStyle = color;
+        }
+        ctx.fill();
+        ctx.closePath();
+    }
+    
+    this.getNeighbors = function() {
+        if(i < maxCols - 1) {
+            this.neighbors.push(grid[this.i + 1][this.j]);
+        }
+        if(i > 0) {
+            this.neighbors.push(grid[this.i - 1][this.j]);
+        }
+        if(j < maxRows - 1) {
+            this.neighbors.push(grid[this.i][this.j + 1]);
+        }
+        if(j > 0) {
+            this.neighbors.push(grid[this.i][this.j - 1]);
+        }
+    }
+}
+
+function createGrid() {
+    grid = new Array(maxRows);
+    
+    for(var i = 0; i < maxCols; i++) {
+        grid[i] = new Array(maxCols);
+        for(var j = 0; j < maxRows; j++) {
+            grid[i][j] = new node(i, j);
+        }
+    }
+    
+    start = grid[4][2];
+    end = grid[4][6];
+    
+    for(var i = 0; i < maxCols; i++) {
+        for(var j = 0; j < maxRows; j++) {
+            grid[i][j].getNeighbors();
+        }
+    }
+    
+    openList = [];
+    openList.push(start);
+    
+    return grid;
+}
+
+function aStar() {
+    while(openList.length > 0) {
+        var winner = 0;
+        for(var i = 0; i < openList.length; i++) {
+            if(openList[i].f < openList[winner].f) {
+                winner = i;
             }
-            else if(i == (maxNodes / 2) - 1 && j == maxNodes / 2) {
-                isWall(nodes[i][j]);
+        }
+        
+        current = openList[winner];
+        //console.log(current);
+        
+        if(current === end) {
+            console.log("Chegou!");
+            path = [];
+            var temp = current;
+            while(temp.cameFrom) {
+                path.push(temp.cameFrom);
+                temp = temp.cameFrom;
             }
-            else if(i == (maxNodes / 2) - 2 && j == maxNodes / 2) {
-                isWall(nodes[i][j]);
+            break;
+        }
+        
+        for(var i = openList.length - 1; i >= 0; i--) {
+            if(openList[i] == current) {
+                openList.splice(i, 1);
             }
-            else if(i == (maxNodes / 2) - 1 && j == (maxNodes / 2) - 2) {
-                isNodeA(nodes[i][j]);
-                nodeA = nodes[i][j];
-            }
-            else if(i == (maxNodes / 2) - 1 && j == (maxNodes / 2) + 2) {
-                isNodeB(nodes[i][j]);
-                nodeB = nodes[i][j];
+        }
+        closedList.push(current);
+        
+        var neighbors = current.neighbors;
+        for(var i = 0; i < neighbors.length; i++) {
+            var actualNeighbor = neighbors[i];
+            
+            if(!closedList.includes(actualNeighbor) && !actualNeighbor.isWall) {
+                var tempG = current.g + 1;
+                if(openList.includes(actualNeighbor)) {
+                    if(tempG < actualNeighbor.g) {
+                        actualNeighbor.g = tempG;
+                    }
+                }
+                else {
+                    actualNeighbor.g = tempG;
+                    openList.push(actualNeighbor);
+                }
+                
+                actualNeighbor.h = manhattan(actualNeighbor, end) * normalWeight;
+                actualNeighbor.f = actualNeighbor.g + actualNeighbor.h;
+                actualNeighbor.cameFrom = current;
             }
         }
     }
-    getNeighbors(nodeA);
-    return nodes;
+    
+    for(var i = 0; i < maxCols; i++) {
+        for(var j = 0; j < maxRows; j++) {
+            grid[i][j].draw("#eee");
+        }
+    }
+    
+    for(var i = 0; i < closedList.length; i++) {
+        closedList[i].draw("#FFFF00");
+    }
+    
+    for(var i = 0; i < openList.length; i++) {
+        openList[i].draw("#FF00FF");
+    }
+    
+    for(var i = 0; i < path.length; i++) {
+        path[i].draw("#00FFFF");
+    }
+    
+    start.draw("#00FF00");
+    end.draw("#FF0000");
 }
 
-function getNeighbors(node) {
-    var neighbors = [];
-    var i = node.i;
-    var j = node.j;
-    
-    // left
-    if(canWalkIn(i - 1, j)) {
-        neighbors.push(nodes[i - 1][j]);
-    }
-    // right
-    if(canWalkIn(i + 1, j)) {
-        neighbors.push(nodes[i + 1][j]);
-    }
-    // up
-    if(canWalkIn(i, j - 1)) {
-        neighbors.push(nodes[i][j - 1]);
-    }
-    // down
-    if(canWalkIn(i, j + 1)) {
-        neighbors.push(nodes[i][j + 1]);
-    }
-    console.log(neighbors);
-    return neighbors;
+function manhattan(nodeA, nodeB) {
+    var d1 = Math.abs(nodeA.i - nodeB.i);
+    var d2 = Math.abs(nodeA.j - nodeB.j);
+    return d1 + d2;
 }
